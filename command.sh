@@ -1,55 +1,70 @@
 #!/bin/bash
 
-ver='3.12.2' # 3.10.12
-pj='platformer'
+#pyver='3.10.12'
+pyver='3.12.2'
 
 f_setup(){
     pyenv versions
-    pyenv local ${ver}
-    python3 -m venv ~/venv/py${ver}
+    pyenv local ${pyver}
+    python3 -m venv ~/venv/py${pyver}
     pip3 install pyxel==2.2.10
     pyenv local system
 }
 
-f_edit(){
-    source ~/venv/py${ver}/bin/activate
-    pyxel edit ${pj}/app.pyxres
-}
-
-f_clean(){
-    pyenv local system
-    find . | grep ~$ | xargs rm
-    rm -f ${pj}.pyxapp
-    rm -rf ${pj}/${pj}
-    tree
+f_init(){
+    pver=${1}
+    mkdir -p dest
+    rm -rf dest/${pver}
+    cp -r org dest/${pver}
 }
 
 f_compile(){
-    source ~/venv/py${ver}/bin/activate
-    rm -f ${pj}/*~
-    mkdir -p ${pj}/${pj}
-    cp ${pj}/app.pyxres ${pj}/${pj}/
-    pyxel package ${pj} ${pj}/app.py
+    pver=${1}
+    source ~/venv/py${pyver}/bin/activate
+    find . | grep ~$ | xargs rm
+    cd dest
+    pyxel package ${pver} ${pver}/app.py
+    cd ..
 }
 
 f_play(){
-    source ~/venv/py${ver}/bin/activate
-    pyxel play ${pj}.pyxapp
+    pver=${1}
+    source ~/venv/py${pyver}/bin/activate
+    pyxel play dest/${pver}.pyxapp
 }
 
-if [ ${#} -eq '1' ]; then
-    if [ ${1} = 'setup' ]; then
-        f_install
-    elif [ ${1} = 'edit' ]; then
-        f_edit
-    elif [ ${1} = 'clean' ]; then
-        f_clean
-    elif [ ${1} = 'compile' ]; then
-        f_compile
-    elif [ ${1} = 'play' ]; then
-        f_compile
-        f_play
-    fi
-else
-    echo 'USAGE: ./command.sh [setup / edit / clean / compile / play]'
+f_edit(){
+    pver=${1}
+    source ~/venv/py${pyver}/bin/activate
+    pyxel edit dest/${pver}/app.pyxres
+}
+
+f_reset(){
+    pyenv local system
+    find . | grep ~$ | xargs rm
+    rm -rf dest
+    tree
+}
+
+if [ ${#} -lt 1 ]; then
+    echo 'USAGE: ./command.sh (setup / init / edit / play / reset) [version]'
+    echo 'SAMPLE: ./command.sh init v1'
+    exit
+elif [ ${#} -eq 1 ]; then
+    pver='v1'
+elif [ ${#} -eq 2 ]; then
+    pver=${2}
+fi
+    
+if [ ${1} = 'setup' ]; then
+    f_install
+elif [ ${1} = 'init' ]; then
+    f_init ${pver}
+elif [ ${1} = 'edit' ]; then
+    f_edit ${pver}
+elif [ ${1} = 'play' ]; then
+    f_compile ${pver}
+    f_play ${pver}
+elif [ ${1} = 'reset' ]; then
+    f_reset
 fi
